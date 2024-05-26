@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
@@ -8,103 +7,135 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class HomeScreen extends StatelessWidget {
   static const String routeName = '/home';
 
-  Future<void> findParking(BuildContext context) async {
+  Future<int?> getLatestVehicleId(BuildContext context) async {
     try {
       final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-      Provider.of<AuthService>(context, listen: false);
-      final User? user = FirebaseAuth.instance.currentUser;
 
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No user is currently signed in.')),
-        );
-        return;
-      }
+      // Initialize with a very small vehicle ID
+      int? latestVehicleId;
+      int maxVehicleId = -1;
 
-      // Fetch the user's vehicle ID
-      DocumentSnapshot userDoc =
-          await _firestore.collection('users').doc(user.uid).get();
-      if (!userDoc.exists) {
-        print('User document does not exist');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No vehicle data found for the user.')),
-        );
-        return;
-      }
+      // Query each document in the 'parkingSlots' collection (A, B, C)
+      for (String slotClass in ['A', 'B', 'C']) {
+        DocumentSnapshot slotSnapshot = await _firestore
+            .collection('parkingSlots')
+            .doc(slotClass)
+            .get();
 
-      var userData = userDoc.data() as Map<String, dynamic>;
-      if (!userData.containsKey('vehicleId') || userData['vehicleId'].isEmpty) {
-        print('User document does not contain vehicleId');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No vehicle data found for the user.')),
-        );
-        return;
-      }
+        // Get the data as a Map<String, dynamic>
+        Map<String, dynamic>? data = slotSnapshot.data() as Map<String, dynamic>?;
 
-      String vehicleId = userData['vehicleId'];
-      print('Vehicle ID: $vehicleId');
+        // Ensure data is not null and contains the 'slots' field
+        if (data != null && data.containsKey('slots')) {
+          // Get the slots field from the document data
+          List<dynamic>? slots = data['slots'] as List<dynamic>?;
 
-      // Retrieve parking slots
-      QuerySnapshot parkingSlotsSnapshot =
-          await _firestore.collection('parkingSlots').get();
-      print(
-          'Parking slots snapshot retrieved: ${parkingSlotsSnapshot.size} documents found.');
-
-      bool slotFound = false;
-      for (var slotClassDoc in parkingSlotsSnapshot.docs) {
-        var slotClass = slotClassDoc.id;
-        var slots = List.from(slotClassDoc['slots']);
-        var availableSlot =
-            slots.firstWhere((slot) => !slot['isFilled'], orElse: () => null);
-
-        if (availableSlot != null) {
-          slotFound = true;
-          // Update the slot with the user's vehicle data
-          availableSlot['isFilled'] = true;
-          availableSlot['vehicleId'] = vehicleId;
-          availableSlot['entryTime'] = DateTime.now().millisecondsSinceEpoch;
-
-          // Update Firestore
-          await _firestore
-              .collection('parkingSlots')
-              .doc(slotClass)
-              .update({'slots': slots});
-
-          print('Updated parking slot: $availableSlot');
-
-          // Navigate to the result screen with correct parameters
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ParkingResultScreen(
-                vehicleId: vehicleId,
-                slotId: availableSlot['id'],
-                slotClass: slotClass,
-                entryTime: availableSlot['entryTime'],
-              ),
-            ),
-          );
-          break;
+          // Check if slots is not null and not empty
+          if (slots != null && slots.isNotEmpty) {
+            // Iterate through slots to find the highest vehicleId
+            for (var slot in slots) {
+              dynamic vehicleId = slot['vehicleId'];
+              if (vehicleId != null) {
+                if (vehicleId is int) {
+                  // If vehicleId is an integer, compare directly
+                  if (vehicleId > maxVehicleId) {
+                    maxVehicleId = vehicleId;
+                    latestVehicleId = vehicleId;
+                  }
+                } else if (vehicleId is String) {
+                  // If vehicleId is a string, parse it to integer
+                  int? parsedVehicleId = int.tryParse(vehicleId);
+                  if (parsedVehicleId != null) {
+                    if (parsedVehicleId > maxVehicleId) {
+                      maxVehicleId = parsedVehicleId;
+                      latestVehicleId = parsedVehicleId;
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
 
-      if (!slotFound) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No available slots')),
-        );
-      }
+      return latestVehicleId;
     } catch (e) {
-      print('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      print('Error retrieving latest vehicle ID: $e');
+      return null;
     }
   }
 
+Future<void> findParking(BuildContext context) async {
+  String? slotId;
+  String? slotClass;
+  int? entryTime;
+
+  try {
+    final int? vehicleId = await getLatestVehicleId(context);
+
+    if (vehicleId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No vehicle data found.')),
+      );
+      return;
+    }
+
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    final QuerySnapshot snapshot = await _firestore.collection('parkingSlots').get();
+
+    // Find the slot where the vehicleId is found
+    for (final doc in snapshot.docs) {
+      final slots = doc['slots'] as List<dynamic>;
+      final vehicleSlot = slots.firstWhere(
+        (slot) => slot['vehicleId'] == vehicleId,
+        orElse: () => null,
+      );
+      
+      if (vehicleSlot != null) {
+        slotClass = doc.id;
+        slotId = vehicleSlot['id'] as String?;
+        entryTime = vehicleSlot['entryTime'] as int?;
+        
+        // Once the slot is found, break out of the loop
+        break;
+      }
+    }
+
+    if (slotClass == null || slotId == null || entryTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No slot found for the largest vehicle ID')),
+      );
+      return;
+    }
+
+    // Navigate to the VehicleDetailsScreen with the retrieved details
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VehicleDetailsScreen(
+          vehicleId: vehicleId.toString(),
+          slotId: slotId!,
+          slotClass: slotClass!,
+          entryTime: entryTime!,
+        ),
+      ),
+    );
+
+  } catch (e) {
+    print('Error: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${e.toString()}')),
+    );
+  }
+}
+
+
+
+
+
+
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Home'),
@@ -112,6 +143,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.logout),
             onPressed: () async {
+              final authService = Provider.of<AuthService>(context, listen: false);
               await authService.signOut();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Signed out successfully')),
