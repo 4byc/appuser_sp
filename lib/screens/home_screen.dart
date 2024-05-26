@@ -65,7 +65,7 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-Future<void> findParking(BuildContext context) async {
+  Future<void> findParking(BuildContext context) async {
   String? slotId;
   String? slotClass;
   int? entryTime;
@@ -130,10 +130,6 @@ Future<void> findParking(BuildContext context) async {
 }
 
 
-
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,3 +164,5 @@ Future<void> findParking(BuildContext context) async {
     );
   }
 }
+
+
