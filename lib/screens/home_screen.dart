@@ -69,6 +69,7 @@ class HomeScreen extends StatelessWidget {
   String? slotId;
   String? slotClass;
   int? entryTime;
+  String? ImgURL;
 
   try {
     final int? vehicleId = await getLatestVehicleId(context);
@@ -95,6 +96,7 @@ class HomeScreen extends StatelessWidget {
         slotClass = doc.id;
         slotId = vehicleSlot['id'] as String?;
         entryTime = vehicleSlot['entryTime'] as int?;
+        ImgURL = vehicleSlot['ImgURL'] as String?;
         
         // Once the slot is found, break out of the loop
         break;
@@ -117,6 +119,7 @@ class HomeScreen extends StatelessWidget {
           slotId: slotId!,
           slotClass: slotClass!,
           entryTime: entryTime!,
+          ImgURL: ImgURL!,
         ),
       ),
     );
