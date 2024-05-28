@@ -1,7 +1,9 @@
+import 'package:appuser_sp/screens/sign_in_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -43,72 +45,12 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  Future<void> signOut() async {
-    User? user = _auth.currentUser;
-    if (user != null) {
-      // Fetch the user's vehicle details from Firestore
-      DocumentSnapshot userDoc =
-          await _firestore.collection('users').doc(user.uid).get();
-      String? vehicleId = (userDoc.data() as Map<String, dynamic>)['vehicleId'];
-
-      // Fetch the user's parking slot details if vehicleId exists
-      if (vehicleId != null && vehicleId.isNotEmpty) {
-        QuerySnapshot parkingSnapshot = await _firestore
-            .collection('parkingSlots')
-            .where('slots.vehicleId', isEqualTo: vehicleId)
-            .get();
-        if (parkingSnapshot.docs.isNotEmpty) {
-          for (var doc in parkingSnapshot.docs) {
-            var parkingData = doc.data() as Map<String, dynamic>;
-            var slots = parkingData['slots'] as List<dynamic>;
-            var userSlot = slots.firstWhere(
-                (slot) => slot['vehicleId'] == vehicleId,
-                orElse: () => null);
-
-            if (userSlot != null) {
-              // Calculate the parking fee and duration
-              int exitTime = DateTime.now().millisecondsSinceEpoch;
-              int entryTime = userSlot['entryTime'];
-              double parkingFee = calculateParkingFee(entryTime, exitTime);
-              int duration = exitTime - entryTime;
-
-              // Update the 'exits' collection
-              await _firestore.collection('exits').add({
-                'class': userSlot['slotClass'],
-                'exitTime': exitTime,
-                'id': userSlot['id'],
-                'parkingDuration': duration,
-                'parkingFee': parkingFee,
-                // 'ehicleId': vehicleId,
-              });
-
-              // Update the 'payments' collection
-              await _firestore.collection('payments').add({
-                'paymentAmount': parkingFee,
-                'paymentTime': exitTime,
-                'lotId': userSlot['id'],
-                'tatus': 'Success',
-                // 'ehicleId': vehicleId,
-              });
-
-              // Clear the parking slot
-              userSlot['isFilled'] = false;
-              userSlot['vehicleId'] = null;
-              userSlot['entryTime'] = null;
-
-              // Update the parking slot in Firestore
-              await _firestore
-                  .collection('parkingSlots')
-                  .doc(doc.id)
-                  .update({'slots': slots});
-            }
-          }
-        }
-      }
-    }
-
+  Future<void> signOut(BuildContext context) async {
     await _auth.signOut();
     await _googleSignIn.signOut();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => SignInScreen()),
+    );
   }
 
   Future<void> signInWithGoogle() async {

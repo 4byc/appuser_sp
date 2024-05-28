@@ -27,19 +27,19 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Container(decoration: BoxDecoration(color: Colors.blue)),
+          Container(decoration: const BoxDecoration(color: Colors.blue)),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset('images/icon.png', width: 100, height: 100),
-              SizedBox(height: 20),
-              Text('DeteClass',
+              const SizedBox(height: 20),
+              const Text('DeteClass',
                   style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white)),
-              SizedBox(height: 20),
-              CircularProgressIndicator(
+              const SizedBox(height: 20),
+              const CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
             ],
           ),
