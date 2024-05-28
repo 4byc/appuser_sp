@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
             children: [
               Image.asset('images/icon.png', width: 100, height: 100),
               SizedBox(height: 20),
-              Text('Welcome to MyApp',
+              Text('DeteClass',
                   style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
