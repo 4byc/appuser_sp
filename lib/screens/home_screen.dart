@@ -11,39 +11,29 @@ class HomeScreen extends StatelessWidget {
     try {
       final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-      // Initialize with a very small vehicle ID
       int? latestVehicleId;
       int maxVehicleId = -1;
 
-      // Query each document in the 'parkingSlots' collection (A, B, C)
       for (String slotClass in ['A', 'B', 'C']) {
-        DocumentSnapshot slotSnapshot = await _firestore
-            .collection('parkingSlots')
-            .doc(slotClass)
-            .get();
+        DocumentSnapshot slotSnapshot =
+            await _firestore.collection('parkingSlots').doc(slotClass).get();
 
-        // Get the data as a Map<String, dynamic>
-        Map<String, dynamic>? data = slotSnapshot.data() as Map<String, dynamic>?;
+        Map<String, dynamic>? data =
+            slotSnapshot.data() as Map<String, dynamic>?;
 
-        // Ensure data is not null and contains the 'slots' field
         if (data != null && data.containsKey('slots')) {
-          // Get the slots field from the document data
           List<dynamic>? slots = data['slots'] as List<dynamic>?;
 
-          // Check if slots is not null and not empty
           if (slots != null && slots.isNotEmpty) {
-            // Iterate through slots to find the highest vehicleId
             for (var slot in slots) {
               dynamic vehicleId = slot['vehicleId'];
               if (vehicleId != null) {
                 if (vehicleId is int) {
-                  // If vehicleId is an integer, compare directly
                   if (vehicleId > maxVehicleId) {
                     maxVehicleId = vehicleId;
                     latestVehicleId = vehicleId;
                   }
                 } else if (vehicleId is String) {
-                  // If vehicleId is a string, parse it to integer
                   int? parsedVehicleId = int.tryParse(vehicleId);
                   if (parsedVehicleId != null) {
                     if (parsedVehicleId > maxVehicleId) {
@@ -66,72 +56,68 @@ class HomeScreen extends StatelessWidget {
   }
 
   Future<void> findParking(BuildContext context) async {
-  String? slotId;
-  String? slotClass;
-  int? entryTime;
-  String? ImgURL;
+    String? slotId;
+    String? slotClass;
+    int? entryTime;
+    String? ImgURL;
 
-  try {
-    final int? vehicleId = await getLatestVehicleId(context);
+    try {
+      final int? vehicleId = await getLatestVehicleId(context);
 
-    if (vehicleId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No vehicle data found.')),
-      );
-      return;
-    }
-
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    final QuerySnapshot snapshot = await _firestore.collection('parkingSlots').get();
-
-    // Find the slot where the vehicleId is found
-    for (final doc in snapshot.docs) {
-      final slots = doc['slots'] as List<dynamic>;
-      final vehicleSlot = slots.firstWhere(
-        (slot) => slot['vehicleId'] == vehicleId,
-        orElse: () => null,
-      );
-      
-      if (vehicleSlot != null) {
-        slotClass = doc.id;
-        slotId = vehicleSlot['id'] as String?;
-        entryTime = vehicleSlot['entryTime'] as int?;
-        ImgURL = vehicleSlot['ImgURL'] as String?;
-        
-        // Once the slot is found, break out of the loop
-        break;
+      if (vehicleId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No vehicle data found.')),
+        );
+        return;
       }
-    }
 
-    if (slotClass == null || slotId == null || entryTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No slot found for the largest vehicle ID')),
-      );
-      return;
-    }
+      final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+      final QuerySnapshot snapshot =
+          await _firestore.collection('parkingSlots').get();
 
-    // Navigate to the VehicleDetailsScreen with the retrieved details
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => VehicleDetailsScreen(
-          vehicleId: vehicleId.toString(),
-          slotId: slotId!,
-          slotClass: slotClass!,
-          entryTime: entryTime!,
-          ImgURL: ImgURL!,
+      for (final doc in snapshot.docs) {
+        final slots = doc['slots'] as List<dynamic>;
+        final vehicleSlot = slots.firstWhere(
+          (slot) => slot['vehicleId'] == vehicleId,
+          orElse: () => null,
+        );
+
+        if (vehicleSlot != null) {
+          slotClass = doc.id;
+          slotId = vehicleSlot['id'] as String?;
+          entryTime = vehicleSlot['entryTime'] as int?;
+          ImgURL = vehicleSlot['ImgURL'] as String?;
+
+          break;
+        }
+      }
+
+      if (slotClass == null || slotId == null || entryTime == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No slot found for the largest vehicle ID')),
+        );
+        return;
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VehicleDetailsScreen(
+            vehicleId: vehicleId.toString(),
+            slotId: slotId!,
+            slotClass: slotClass!,
+            entryTime: entryTime!,
+            ImgURL: ImgURL!,
+          ),
         ),
-      ),
-    );
-
-  } catch (e) {
-    print('Error: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: ${e.toString()}')),
-    );
+      );
+    } catch (e) {
+      print('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -142,9 +128,11 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.logout),
             onPressed: () async {
-              final authService = Provider.of<AuthService>(context, listen: false);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final authService =
+                  Provider.of<AuthService>(context, listen: false);
               await authService.signOut();
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 SnackBar(content: Text('Signed out successfully')),
               );
             },
@@ -167,5 +155,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-
-

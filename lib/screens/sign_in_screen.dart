@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'sign_up_screen.dart';
 import 'password_reset_screen.dart';
-import 'home_screen.dart';
 
 class SignInScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();

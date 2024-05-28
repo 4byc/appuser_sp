@@ -28,7 +28,7 @@ class AuthService extends ChangeNotifier {
       await _firestore.collection('users').doc(user?.uid).set({
         'email': email,
         'username': username,
-        'ehicleId': '', // Initialize vehicleId field
+        // 'ehicleId': '', // Initialize vehicleId field
       });
     } on FirebaseAuthException catch (e) {
       throw FirebaseAuthException(message: _handleError(e), code: e.code);
@@ -79,7 +79,7 @@ class AuthService extends ChangeNotifier {
                 'id': userSlot['id'],
                 'parkingDuration': duration,
                 'parkingFee': parkingFee,
-                'ehicleId': vehicleId,
+                // 'ehicleId': vehicleId,
               });
 
               // Update the 'payments' collection
@@ -88,7 +88,7 @@ class AuthService extends ChangeNotifier {
                 'paymentTime': exitTime,
                 'lotId': userSlot['id'],
                 'tatus': 'Success',
-                'ehicleId': vehicleId,
+                // 'ehicleId': vehicleId,
               });
 
               // Clear the parking slot
@@ -128,7 +128,7 @@ class AuthService extends ChangeNotifier {
         await _firestore.collection('users').doc(user?.uid).set({
           'email': user?.email,
           'username': user?.displayName,
-          'ehicleId': '', // Initialize vehicleId field
+          // 'ehicleId': '', // Initialize vehicleId field
         });
       }
     } catch (e) {
