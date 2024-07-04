@@ -6,9 +6,15 @@ import '../services/auth_service.dart';
 import 'sign_up_screen.dart';
 import 'password_reset_screen.dart';
 
-class SignInScreen extends StatelessWidget {
+class SignInScreen extends StatefulWidget {
+  @override
+  _SignInScreenState createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _obscureText = true;
 
   @override
   Widget build(BuildContext context) {
@@ -18,17 +24,13 @@ class SignInScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
               'images/bg.png',
               fit: BoxFit.fill,
             ),
           ),
-          
-          // Foreground content
           SingleChildScrollView(
-            
             child: Padding(
               padding: EdgeInsets.all(16.0),
               child: Column(
@@ -55,7 +57,8 @@ class SignInScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 48),
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 48.0, horizontal: 16.0),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -67,7 +70,7 @@ class SignInScreen extends StatelessWidget {
                         const Text(
                           'Email Address',
                           textAlign: TextAlign.left,
-                          ),
+                        ),
                         const SizedBox(height: 8),
                         TextField(
                           controller: emailController,
@@ -95,9 +98,20 @@ class SignInScreen extends StatelessWidget {
                             ),
                             filled: true,
                             fillColor: Colors.blue.withOpacity(0.1),
-                            suffixIcon: Icon(Icons.visibility_off),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureText
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscureText = !_obscureText;
+                                });
+                              },
+                            ),
                           ),
-                          obscureText: true,
+                          obscureText: _obscureText,
                         ),
                         SizedBox(height: 8),
                         Row(
@@ -116,49 +130,92 @@ class SignInScreen extends StatelessWidget {
                         ),
                         Center(
                           child: SizedBox(
-                          width: double.infinity, // Adjust the width as needed
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              try {
-                                await authService.signIn(
-                                    emailController.text, passwordController.text);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Signed in successfully')));
-                                    Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (context) => HomeScreen()), // Replace HomeScreen with your homepage screen
-                              );
-                              } on FirebaseAuthException catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error: ${e.message}')));
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: Colors.blue,
-                              disabledForegroundColor: Colors.white.withOpacity(0.38),
-                              disabledBackgroundColor: Colors.white.withOpacity(0.12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                if (emailController.text.isEmpty ||
+                                    passwordController.text.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content:
+                                              Text('Please fill all fields')));
+                                  return;
+                                }
+                                try {
+                                  await authService.signIn(emailController.text,
+                                      passwordController.text);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content:
+                                              Text('Signed in successfully')));
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            HomeScreen()), // Replace HomeScreen with your homepage screen
+                                  );
+                                } on FirebaseAuthException catch (e) {
+                                  String errorMessage;
+                                  switch (e.code) {
+                                    case 'user-not-found':
+                                      errorMessage =
+                                          'No user found for that email. Please sign up first.';
+                                      break;
+                                    case 'wrong-password':
+                                      errorMessage = 'Wrong password provided.';
+                                      break;
+                                    case 'invalid-email':
+                                      errorMessage = 'Invalid email address.';
+                                      break;
+                                    case 'invalid-credential':
+                                      errorMessage =
+                                          'Invalid credentials provided.';
+                                      break;
+                                    default:
+                                      errorMessage =
+                                          'An unknown error occurred.';
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content:
+                                              Text('Error: $errorMessage')));
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Error: An unknown error occurred.')));
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                backgroundColor: Colors.blue,
+                                disabledForegroundColor:
+                                    Colors.white.withOpacity(0.38),
+                                disabledBackgroundColor:
+                                    Colors.white.withOpacity(0.12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                'Login',
+                                style: TextStyle(color: Colors.white),
                               ),
                             ),
-                            child: const Text(
-                              'Login',
-                              style: TextStyle(color: Colors.white),
-                              ),
-                           ),
                           ),
                         ),
                         Center(
                           child: SizedBox(
-                          child: TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SignUpScreen()),
-                    ),
-                    child: const Text('Don\'t have an account? Sign Up'),
-                  ),
-                  ),
+                            child: TextButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => SignUpScreen()),
+                              ),
+                              child:
+                                  const Text('Don\'t have an account? Sign Up'),
+                            ),
+                          ),
                         )
                       ],
                     ),
@@ -175,7 +232,8 @@ class SignInScreen extends StatelessWidget {
                       try {
                         await authService.signInWithGoogle();
                         ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Signed in with Google')));
+                            const SnackBar(
+                                content: Text('Signed in with Google')));
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Error: ${e.toString()}')));

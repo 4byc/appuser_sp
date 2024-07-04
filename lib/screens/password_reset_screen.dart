@@ -15,7 +15,7 @@ class PasswordResetScreen extends StatelessWidget {
         title: const Text(
           'Reset Password',
           style: TextStyle(fontSize: 18, color: Colors.white),
-          ),
+        ),
         backgroundColor: Colors.blue,
       ),
       body: Stack(
@@ -32,11 +32,11 @@ class PasswordResetScreen extends StatelessWidget {
           // Foreground content
           SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(height: 48),
+                  const SizedBox(height: 48),
                   const Text(
                     'Reset Password',
                     textAlign: TextAlign.center,
@@ -46,7 +46,7 @@ class PasswordResetScreen extends StatelessWidget {
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   const Text(
                     'Enter your email address',
                     textAlign: TextAlign.center,
@@ -57,7 +57,8 @@ class PasswordResetScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 48),
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 40.0, horizontal: 16.0),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -92,21 +93,72 @@ class PasswordResetScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         Center(
                           child: SizedBox(
-                            width: double.infinity, // Adjust the width as needed
+                            width:
+                                double.infinity, // Adjust the width as needed
                             child: ElevatedButton(
                               onPressed: () async {
-                                try {
-                                  await authService.sendPasswordResetEmail(emailController.text);
+                                if (emailController.text.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Password reset email sent')));
+                                      const SnackBar(
+                                          content:
+                                              Text('Please enter your email')));
+                                  return;
+                                }
+
+                                try {
+                                  // Check if the email is registered
+                                  List<String> signInMethods =
+                                      await FirebaseAuth.instance
+                                          .fetchSignInMethodsForEmail(
+                                              emailController.text);
+                                  if (signInMethods.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'No user found for that email')));
+                                    return;
+                                  }
+
+                                  await authService.sendPasswordResetEmail(
+                                      emailController.text);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Password reset email sent')));
                                   Navigator.pop(context);
                                 } on FirebaseAuthException catch (e) {
+                                  String errorMessage;
+                                  switch (e.code) {
+                                    case 'invalid-email':
+                                      errorMessage = 'Invalid email address.';
+                                      break;
+                                    case 'user-not-found':
+                                      errorMessage =
+                                          'No user found for that email.';
+                                      break;
+                                    default:
+                                      errorMessage =
+                                          'An unknown error occurred.';
+                                  }
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error: ${e.message}')));
+                                      SnackBar(
+                                          content:
+                                              Text('Error: $errorMessage')));
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Error: An unknown error occurred.')));
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 16), backgroundColor: Colors.blue, disabledForegroundColor: Colors.white.withOpacity(0.38), disabledBackgroundColor: Colors.white.withOpacity(0.12), // Text color when button is pressed
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                backgroundColor: Colors.blue,
+                                disabledForegroundColor:
+                                    Colors.white.withOpacity(0.38),
+                                disabledBackgroundColor:
+                                    Colors.white.withOpacity(0.12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
