@@ -19,42 +19,51 @@ class VehicleDetailsScreen extends StatelessWidget {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Fungsi yang sudah diperbaiki untuk menghitung biaya parkir
   Future<Map<String, dynamic>> calculatePayment() async {
-    final int currentTime = DateTime.now().millisecondsSinceEpoch ~/ 1000; // Current time in seconds
+    final int currentTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final int durationInSeconds = currentTime - entryTime;
-    final double durationInHours = durationInSeconds / 3600.0;
-    int costPerHour;
+    final int durationInHours = (durationInSeconds / 3600).floor();
+    int totalCost = 0;
 
     switch (slotClass) {
       case 'A':
-        costPerHour = 15000;
+        totalCost = _calculateCost(durationInHours, 15000, 10000);
         break;
       case 'B':
-        costPerHour = 10000;
+        totalCost = _calculateCost(durationInHours, 10000, 8000);
         break;
       case 'C':
-        costPerHour = 5000;
+        totalCost = _calculateCost(durationInHours, 5000, 3000);
         break;
       default:
-        costPerHour = 0;
+        print("Vehicle class not recognized.");
     }
-
-    final int totalCost = (durationInHours * costPerHour).ceil();
 
     return {
       'totalCost': totalCost,
-      'durationInHours': durationInHours,
+      'durationInHours': durationInHours.toDouble(),
     };
   }
 
-  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+  // Fungsi helper untuk menghitung biaya
+  int _calculateCost(int hours, int firstHourCost, int subsequentHourCost) {
+    if (hours <= 0) return 0;
+    if (hours == 1) return firstHourCost;
+    return firstHourCost + ((hours - 1) * subsequentHourCost);
+  }
 
-  Future<void> findAndExitParking(BuildContext context, String vehicleId) async {
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
+  Future<void> findAndExitParking(
+      BuildContext context, String vehicleId) async {
     try {
       int parsedVehicleId = int.parse(vehicleId); // Convert the string to int
 
       final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-      final QuerySnapshot snapshot = await _firestore.collection('parkingSlots').get();
+      final QuerySnapshot snapshot =
+          await _firestore.collection('parkingSlots').get();
 
       // Iterate through each document in the collection
       for (final doc in snapshot.docs) {
@@ -63,7 +72,8 @@ class VehicleDetailsScreen extends StatelessWidget {
         for (var i = 0; i < slots.length; i++) {
           final slot = slots[i];
           // Check if the slot contains the vehicle ID
-          if (slot['vehicleId'] == parsedVehicleId) { // Use parsedVehicleId
+          if (slot['vehicleId'] == parsedVehicleId) {
+            // Use parsedVehicleId
             // Update the slot data
             slots[i]['entryTime'] = null;
             slots[i]['vehicleId'] = null;
@@ -71,7 +81,10 @@ class VehicleDetailsScreen extends StatelessWidget {
           }
         }
         // Update the document in Firestore
-        await _firestore.collection('parkingSlots').doc(doc.id).update({'slots': slots});
+        await _firestore
+            .collection('parkingSlots')
+            .doc(doc.id)
+            .update({'slots': slots});
       }
 
       // Navigate back to the previous screen
@@ -85,13 +98,16 @@ class VehicleDetailsScreen extends StatelessWidget {
     }
   }
 
-  Future<void> calculateAndStorePayment(BuildContext context, String vehicleId) async {
+  Future<void> calculateAndStorePayment(
+      BuildContext context, String vehicleId) async {
     try {
       final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-      final int parsedVehicleId = int.parse(vehicleId); // Convert the string to int
+      final int parsedVehicleId =
+          int.parse(vehicleId); // Convert the string to int
 
       final Map<String, dynamic> paymentDetails = await calculatePayment();
-      final int currentTime = DateTime.now().millisecondsSinceEpoch ~/ 1000; // Current time in seconds
+      final int currentTime = DateTime.now().millisecondsSinceEpoch ~/
+          1000; // Current time in seconds
 
       // Store payment information in Firestore
       await _firestore.collection('payment').add({
@@ -116,12 +132,13 @@ class VehicleDetailsScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 color: Colors.blue,
               ),
-              ),
+            ),
             content: const Text('Your payment was successful.'),
             actions: [
               TextButton(
                 onPressed: () {
-                  findAndExitParking(context, vehicleId); // Trigger the exit process
+                  findAndExitParking(
+                      context, vehicleId); // Trigger the exit process
                   Navigator.pushReplacementNamed(context, '/home');
                 },
                 child: const Text('Exit'),
@@ -130,7 +147,6 @@ class VehicleDetailsScreen extends StatelessWidget {
           );
         },
       );
-
     } catch (e) {
       print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -153,12 +169,13 @@ class VehicleDetailsScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
               color: Colors.blue,
             ),
-            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Total Time: ${paymentDetails['durationInHours'].toStringAsFixed(2)} hours'),
+              Text(
+                  'Total Time: ${paymentDetails['durationInHours'].toStringAsFixed(2)} hours'),
               SizedBox(height: 8),
               Text(
                 'Rp ${paymentDetails['totalCost']}',
@@ -167,7 +184,7 @@ class VehicleDetailsScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: Colors.blue,
                 ),
-                ),
+              ),
             ],
           ),
           actions: [
@@ -180,7 +197,8 @@ class VehicleDetailsScreen extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.pop(context); // Close the dialog
-                calculateAndStorePayment(context, vehicleId); // Proceed with payment
+                calculateAndStorePayment(
+                    context, vehicleId); // Proceed with payment
               },
               child: Text('Confirm'),
             ),
@@ -198,7 +216,7 @@ class VehicleDetailsScreen extends StatelessWidget {
         title: const Text(
           'Vehicle Details',
           style: TextStyle(fontSize: 18, color: Colors.white),
-          ),
+        ),
         backgroundColor: Colors.blue,
         automaticallyImplyLeading: false,
       ),
@@ -215,7 +233,10 @@ class VehicleDetailsScreen extends StatelessWidget {
           ),
           // Foreground content
           FutureBuilder<DocumentSnapshot>(
-            future: FirebaseFirestore.instance.collection('parkingSlots').doc(vehicleId).get(),
+            future: FirebaseFirestore.instance
+                .collection('parkingSlots')
+                .doc(vehicleId)
+                .get(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
@@ -269,7 +290,11 @@ class VehicleDetailsScreen extends StatelessWidget {
                               },
                               style: ElevatedButton.styleFrom(
                                 padding: EdgeInsets.symmetric(vertical: 16),
-                                backgroundColor: Colors.blue, disabledForegroundColor: Colors.white.withOpacity(0.38), disabledBackgroundColor: Colors.white.withOpacity(0.12),
+                                backgroundColor: Colors.blue,
+                                disabledForegroundColor:
+                                    Colors.white.withOpacity(0.38),
+                                disabledBackgroundColor:
+                                    Colors.white.withOpacity(0.12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
