@@ -32,7 +32,7 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
           SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -88,7 +88,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           'Password',
                           textAlign: TextAlign.left,
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         TextField(
                           controller: passwordController,
                           decoration: InputDecoration(
@@ -113,7 +113,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                           obscureText: _obscureText,
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -124,7 +124,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                   builder: (context) => PasswordResetScreen(),
                                 ),
                               ),
-                              child: Text('Forgot Password?'),
+                              child: const Text('Forgot Password?'),
                             ),
                           ],
                         ),
@@ -151,8 +151,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                   Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (context) =>
-                                            HomeScreen()), // Replace HomeScreen with your homepage screen
+                                        builder: (context) => HomeScreen()),
                                   );
                                 } on FirebaseAuthException catch (e) {
                                   String errorMessage;
@@ -187,7 +186,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                                 backgroundColor: Colors.blue,
                                 disabledForegroundColor:
                                     Colors.white.withOpacity(0.38),
@@ -216,7 +216,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                   const Text('Don\'t have an account? Sign Up'),
                             ),
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -231,10 +231,12 @@ class _SignInScreenState extends State<SignInScreen> {
                     onTap: () async {
                       try {
                         await authService.signInWithGoogle();
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Signed in with Google')));
                       } catch (e) {
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Error: ${e.toString()}')));
                       }

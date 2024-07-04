@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -30,7 +29,7 @@ class AuthService extends ChangeNotifier {
       await _firestore.collection('users').doc(user?.uid).set({
         'email': email,
         'username': username,
-        // 'ehicleId': '', // Initialize vehicleId field
+        // 'vehicleId': '', // Initialize vehicleId field
       });
     } on FirebaseAuthException catch (e) {
       throw FirebaseAuthException(message: _handleError(e), code: e.code);
@@ -70,7 +69,7 @@ class AuthService extends ChangeNotifier {
         await _firestore.collection('users').doc(user?.uid).set({
           'email': user?.email,
           'username': user?.displayName,
-          // 'ehicleId': '', // Initialize vehicleId field
+          // 'vehicleId': '', // Initialize vehicleId field
         });
       }
     } catch (e) {

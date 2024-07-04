@@ -93,8 +93,7 @@ class PasswordResetScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         Center(
                           child: SizedBox(
-                            width:
-                                double.infinity, // Adjust the width as needed
+                            width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () async {
                                 if (emailController.text.isEmpty) {
@@ -106,19 +105,6 @@ class PasswordResetScreen extends StatelessWidget {
                                 }
 
                                 try {
-                                  // Check if the email is registered
-                                  List<String> signInMethods =
-                                      await FirebaseAuth.instance
-                                          .fetchSignInMethodsForEmail(
-                                              emailController.text);
-                                  if (signInMethods.isEmpty) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'No user found for that email')));
-                                    return;
-                                  }
-
                                   await authService.sendPasswordResetEmail(
                                       emailController.text);
                                   ScaffoldMessenger.of(context).showSnackBar(
