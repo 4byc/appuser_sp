@@ -19,7 +19,7 @@ class VehicleDetailsScreen extends StatelessWidget {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Fungsi yang sudah diperbaiki untuk menghitung biaya parkir
+  // Function to calculate parking payment
   Future<Map<String, dynamic>> calculatePayment() async {
     final int currentTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final int durationInSeconds = currentTime - entryTime;
@@ -40,13 +40,25 @@ class VehicleDetailsScreen extends StatelessWidget {
         print("Vehicle class not recognized.");
     }
 
+    // Check if the user has violated parking rules and calculate the fine if necessary
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    final DocumentSnapshot fineDoc =
+        await _firestore.collection('fines').doc(vehicleId).get();
+    int fine = 0;
+    if (fineDoc.exists) {
+      final fineData = fineDoc.data() as Map<String, dynamic>;
+      fine = fineData['fine'] as int;
+    }
+
     return {
       'totalCost': totalCost,
       'durationInHours': durationInHours.toDouble(),
+      'fine': fine,
+      'finalAmount': totalCost + fine,
     };
   }
 
-  // Fungsi helper untuk menghitung biaya
+  // Helper function to calculate cost
   int _calculateCost(int hours, int firstHourCost, int subsequentHourCost) {
     if (hours <= 0) return 0;
     if (hours == 1) return firstHourCost;
@@ -118,6 +130,8 @@ class VehicleDetailsScreen extends StatelessWidget {
         'exitTime': currentTime,
         'duration': paymentDetails['durationInHours'],
         'totalCost': paymentDetails['totalCost'],
+        'fine': paymentDetails['fine'],
+        'finalAmount': paymentDetails['finalAmount'],
       });
 
       // Show payment success dialog
@@ -133,7 +147,8 @@ class VehicleDetailsScreen extends StatelessWidget {
                 color: Colors.blue,
               ),
             ),
-            content: const Text('Your payment was successful.'),
+            content: Text(
+                'Your payment was successful. Total Amount: Rp ${paymentDetails['finalAmount']} (Fine: Rp ${paymentDetails['fine']})'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -185,6 +200,25 @@ class VehicleDetailsScreen extends StatelessWidget {
                   color: Colors.blue,
                 ),
               ),
+              SizedBox(height: 8),
+              if (paymentDetails['fine'] > 0)
+                Text(
+                  'Fine: Rp ${paymentDetails['fine']}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              SizedBox(height: 8),
+              Text(
+                'Total Amount: Rp ${paymentDetails['finalAmount']}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
             ],
           ),
           actions: [
@@ -208,6 +242,47 @@ class VehicleDetailsScreen extends StatelessWidget {
     );
   }
 
+  Future<void> checkForMessages(BuildContext context) async {
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    final DocumentSnapshot userDoc =
+        await _firestore.collection('users').doc(vehicleId).get();
+
+    if (userDoc.exists) {
+      print('User document exists');
+      final data = userDoc.data() as Map<String, dynamic>?;
+      if (data != null && data.containsKey('message')) {
+        final String message = data['message'];
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Message from Admin'),
+              content: Text(message),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close the dialog
+                  },
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        print('No message found in user document');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No new messages')),
+        );
+      }
+    } else {
+      print('User document does not exist');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No new messages')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -219,6 +294,14 @@ class VehicleDetailsScreen extends StatelessWidget {
         ),
         backgroundColor: Colors.blue,
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications),
+            onPressed: () {
+              checkForMessages(context);
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
