@@ -48,42 +48,31 @@ class _HomeScreenState extends State<HomeScreen> {
       int? latestVehicleId;
       int maxVehicleId = -1;
 
-      for (String slotClass in ['A', 'B', 'C']) {
-        DocumentSnapshot slotSnapshot =
-            await _firestore.collection('parkingSlots').doc(slotClass).get();
+      // Fetch the highest vehicle ID from detections
+      QuerySnapshot detectionsSnapshot =
+          await _firestore.collection('detections').get();
+      for (var doc in detectionsSnapshot.docs) {
+        int vehicleId = int.parse(doc['VehicleID'].toString());
 
-        Map<String, dynamic>? data =
-            slotSnapshot.data() as Map<String, dynamic>?;
+        // Check if this vehicle ID is marked as canceled in payments
+        bool isCanceled = false;
+        QuerySnapshot paymentsSnapshot = await _firestore
+            .collection('payments')
+            .where('vehicleId', isEqualTo: vehicleId)
+            .where('status', isEqualTo: 'Canceled')
+            .get();
 
-        if (data != null && data.containsKey('slots')) {
-          List<dynamic>? slots = data['slots'] as List<dynamic>?;
+        if (paymentsSnapshot.docs.isNotEmpty) {
+          isCanceled = true;
+        }
 
-          if (slots != null && slots.isNotEmpty) {
-            for (var slot in slots) {
-              dynamic vehicleId = slot['vehicleId'];
-              print('Vehicle ID in slot: $vehicleId');
-              if (vehicleId != null) {
-                if (vehicleId is int) {
-                  if (vehicleId > maxVehicleId) {
-                    maxVehicleId = vehicleId;
-                    latestVehicleId = vehicleId;
-                  }
-                } else if (vehicleId is String) {
-                  int? parsedVehicleId = int.tryParse(vehicleId);
-                  if (parsedVehicleId != null) {
-                    if (parsedVehicleId > maxVehicleId) {
-                      maxVehicleId = parsedVehicleId;
-                      latestVehicleId = parsedVehicleId;
-                    }
-                  }
-                }
-              }
-            }
-          }
+        if (vehicleId > maxVehicleId && !isCanceled) {
+          maxVehicleId = vehicleId;
+          latestVehicleId = vehicleId;
         }
       }
 
-      print('Latest Vehicle ID: $latestVehicleId');
+      print('Latest Vehicle ID from detections: $latestVehicleId');
       return latestVehicleId;
     } catch (e) {
       print('Error retrieving latest vehicle ID: $e');
@@ -111,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final QuerySnapshot snapshot =
           await _firestore.collection('parkingSlots').get();
 
+      bool slotFound = false;
       for (final doc in snapshot.docs) {
         final slots = doc['slots'] as List<dynamic>;
         final vehicleSlot = slots.firstWhere(
@@ -126,15 +116,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
           print('Slot found: $slotId, $slotClass, $entryTime, $ImgURL');
 
+          slotFound = true;
           break;
         }
       }
 
-      if (slotClass == null || slotId == null || entryTime == null) {
+      if (!slotFound) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('No slot found for the largest vehicle ID')),
+              content: Text('No slot found for the latest vehicle ID.')),
         );
+        await _notifyUserTurnBack(context, vehicleId);
         return;
       }
 
@@ -156,6 +148,23 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
+  }
+
+  Future<void> _notifyUserTurnBack(BuildContext context, int vehicleId) async {
+    // Store the canceled payment information
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    await _firestore.collection('payments').add({
+      'vehicleId': vehicleId,
+      'status': 'Canceled',
+      'time': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TurnBackScreen(vehicleId: vehicleId),
+      ),
+    );
   }
 
   @override
@@ -229,6 +238,74 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class TurnBackScreen extends StatelessWidget {
+  final int vehicleId;
+
+  TurnBackScreen({required this.vehicleId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Parking Full',
+          style: TextStyle(fontSize: 18, color: Colors.white),
+        ),
+        backgroundColor: Colors.blue,
+      ),
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Sorry, the parking lot is full.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Vehicle ID: $vehicleId',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Go back to the previous screen
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Exit',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
