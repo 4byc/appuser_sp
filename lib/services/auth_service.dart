@@ -25,10 +25,12 @@ class AuthService extends ChangeNotifier {
       UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: email, password: password);
       User? user = userCredential.user;
-      await _firestore.collection('users').doc(user?.uid).set({
-        'email': email,
-        'username': username,
-      });
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': email,
+          'username': username,
+        });
+      }
     } on FirebaseAuthException catch (e) {
       throw FirebaseAuthException(message: _handleError(e), code: e.code);
     }
@@ -43,30 +45,40 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signOut(BuildContext context) async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => SignInScreen()),
-    );
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => SignInScreen()),
+      );
+    } catch (e) {
+      throw FirebaseAuthException(
+          message: e.toString(), code: 'sign-out-failed');
+    }
   }
 
   Future<void> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return;
+      if (googleUser == null) return; // User canceled the sign-in
+
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
+
       final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
 
       UserCredential userCredential =
           await _auth.signInWithCredential(credential);
       User? user = userCredential.user;
 
-      if (userCredential.additionalUserInfo?.isNewUser ?? false) {
-        await _firestore.collection('users').doc(user?.uid).set({
-          'email': user?.email,
-          'username': user?.displayName,
+      if (user != null &&
+          (userCredential.additionalUserInfo?.isNewUser ?? false)) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': user.email,
+          'username': user.displayName,
         });
       }
     } catch (e) {
