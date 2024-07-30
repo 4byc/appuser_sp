@@ -22,7 +22,6 @@ class SignUpScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // Background Image using Container
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -31,7 +30,6 @@ class SignUpScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Foreground content
           SingleChildScrollView(
             child: Padding(
               padding: EdgeInsets.all(16.0),
@@ -129,11 +127,9 @@ class SignUpScreen extends StatelessWidget {
                         SizedBox(height: 16),
                         Center(
                           child: SizedBox(
-                            width:
-                                double.infinity, // Adjust the width as needed
+                            width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () async {
-                                // Validasi input
                                 if (usernameController.text.isEmpty ||
                                     emailController.text.isEmpty ||
                                     passwordController.text.isEmpty) {
@@ -169,8 +165,8 @@ class SignUpScreen extends StatelessWidget {
                                 backgroundColor: Colors.blue,
                                 disabledForegroundColor:
                                     Colors.white.withOpacity(0.38),
-                                disabledBackgroundColor: Colors.white.withOpacity(
-                                    0.12), // Text color when button is pressed
+                                disabledBackgroundColor:
+                                    Colors.white.withOpacity(0.12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),

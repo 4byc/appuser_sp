@@ -19,7 +19,6 @@ class VehicleDetailsScreen extends StatelessWidget {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Function to calculate parking payment
   Future<Map<String, dynamic>> calculatePayment() async {
     final int currentTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final int durationInSeconds = currentTime - entryTime;
@@ -40,7 +39,6 @@ class VehicleDetailsScreen extends StatelessWidget {
         print("Vehicle class not recognized.");
     }
 
-    // Check if the user has violated parking rules and calculate the fine if necessary
     final FirebaseFirestore _firestore = FirebaseFirestore.instance;
     final DocumentSnapshot fineDoc =
         await _firestore.collection('fines').doc(vehicleId).get();
@@ -58,7 +56,6 @@ class VehicleDetailsScreen extends StatelessWidget {
     };
   }
 
-  // Helper function to calculate cost
   int _calculateCost(int hours, int firstHourCost, int subsequentHourCost) {
     if (hours <= 0) return 0;
     if (hours == 1) return firstHourCost;
@@ -71,39 +68,30 @@ class VehicleDetailsScreen extends StatelessWidget {
   Future<void> findAndExitParking(
       BuildContext context, String vehicleId) async {
     try {
-      int parsedVehicleId = int.parse(vehicleId); // Convert the string to int
+      int parsedVehicleId = int.parse(vehicleId);
 
       final FirebaseFirestore _firestore = FirebaseFirestore.instance;
       final QuerySnapshot snapshot =
           await _firestore.collection('parkingSlots').get();
 
-      // Iterate through each document in the collection
       for (final doc in snapshot.docs) {
         final slots = doc['slots'] as List<dynamic>;
-        // Iterate through each slot in the document
         for (var i = 0; i < slots.length; i++) {
           final slot = slots[i];
-          // Check if the slot contains the vehicle ID
           if (slot['vehicleId'] == parsedVehicleId) {
-            // Use parsedVehicleId
-            // Update the slot data
             slots[i]['entryTime'] = null;
             slots[i]['vehicleId'] = null;
             slots[i]['isFilled'] = false;
           }
         }
-        // Update the document in Firestore
         await _firestore
             .collection('parkingSlots')
             .doc(doc.id)
             .update({'slots': slots});
       }
-
-      // Navigate back to the previous screen
       Navigator.pop(context);
     } catch (e) {
       print('Error: $e');
-      // Show error using ScaffoldMessenger with GlobalKey
       scaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
@@ -114,14 +102,11 @@ class VehicleDetailsScreen extends StatelessWidget {
       BuildContext context, String vehicleId) async {
     try {
       final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-      final int parsedVehicleId =
-          int.parse(vehicleId); // Convert the string to int
+      final int parsedVehicleId = int.parse(vehicleId);
 
       final Map<String, dynamic> paymentDetails = await calculatePayment();
-      final int currentTime = DateTime.now().millisecondsSinceEpoch ~/
-          1000; // Current time in seconds
+      final int currentTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      // Store payment information in Firestore
       await _firestore.collection('payment').add({
         'vehicleId': parsedVehicleId,
         'slotId': slotId,
@@ -134,9 +119,8 @@ class VehicleDetailsScreen extends StatelessWidget {
         'finalAmount': paymentDetails['finalAmount'],
       });
 
-      // Show payment success dialog
       showDialog(
-        context: _scaffoldKey.currentContext!, // Use stored context
+        context: _scaffoldKey.currentContext!,
         builder: (context) {
           return AlertDialog(
             title: const Text(
@@ -152,8 +136,7 @@ class VehicleDetailsScreen extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () {
-                  findAndExitParking(
-                      context, vehicleId); // Trigger the exit process
+                  findAndExitParking(context, vehicleId);
                   Navigator.pushReplacementNamed(context, '/home');
                 },
                 child: const Text('Exit'),
@@ -224,15 +207,14 @@ class VehicleDetailsScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close the dialog
+                Navigator.pop(context);
               },
               child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close the dialog
-                calculateAndStorePayment(
-                    context, vehicleId); // Proceed with payment
+                Navigator.pop(context);
+                calculateAndStorePayment(context, vehicleId);
               },
               child: Text('Confirm'),
             ),
@@ -248,7 +230,6 @@ class VehicleDetailsScreen extends StatelessWidget {
         await _firestore.collection('users').doc(vehicleId).get();
 
     if (userDoc.exists) {
-      print('User document exists');
       final data = userDoc.data() as Map<String, dynamic>?;
       if (data != null && data.containsKey('message')) {
         final String message = data['message'];
@@ -261,7 +242,7 @@ class VehicleDetailsScreen extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context); // Close the dialog
+                    Navigator.pop(context);
                   },
                   child: const Text('Close'),
                 ),
@@ -270,13 +251,11 @@ class VehicleDetailsScreen extends StatelessWidget {
           },
         );
       } else {
-        print('No message found in user document');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('No new messages')),
         );
       }
     } else {
-      print('User document does not exist');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No new messages')),
       );
@@ -305,7 +284,6 @@ class VehicleDetailsScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // Background Image using Container
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -314,7 +292,6 @@ class VehicleDetailsScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Foreground content
           FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
                 .collection('parkingSlots')
@@ -357,7 +334,6 @@ class VehicleDetailsScreen extends StatelessWidget {
                                 const SizedBox(height: 8),
                                 const Text('Location:'),
                                 const SizedBox(height: 8),
-                                // Display the image using NetworkImage
                                 Image.network(ImgURL),
                               ],
                             ),

@@ -10,7 +10,6 @@ class AuthService extends ChangeNotifier {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   Stream<User?> get user => _auth.authStateChanges();
-
   User? get currentUser => _auth.currentUser;
 
   Future<void> signIn(String email, String password) async {
@@ -29,7 +28,6 @@ class AuthService extends ChangeNotifier {
       await _firestore.collection('users').doc(user?.uid).set({
         'email': email,
         'username': username,
-        // 'vehicleId': '', // Initialize vehicleId field
       });
     } on FirebaseAuthException catch (e) {
       throw FirebaseAuthException(message: _handleError(e), code: e.code);
@@ -69,7 +67,6 @@ class AuthService extends ChangeNotifier {
         await _firestore.collection('users').doc(user?.uid).set({
           'email': user?.email,
           'username': user?.displayName,
-          // 'vehicleId': '', // Initialize vehicleId field
         });
       }
     } catch (e) {

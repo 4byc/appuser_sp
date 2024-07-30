@@ -61,7 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
           if (slots != null && slots.isNotEmpty) {
             for (var slot in slots) {
               dynamic vehicleId = slot['vehicleId'];
-              print('Vehicle ID in slot: $vehicleId');
               if (vehicleId != null) {
                 if (vehicleId is int) {
                   if (vehicleId > maxVehicleId) {
@@ -82,8 +81,6 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
       }
-
-      print('Latest Vehicle ID: $latestVehicleId');
       return latestVehicleId;
     } catch (e) {
       print('Error retrieving latest vehicle ID: $e');
@@ -123,9 +120,6 @@ class _HomeScreenState extends State<HomeScreen> {
           slotId = vehicleSlot['id'] as String?;
           entryTime = vehicleSlot['entryTime'] as int?;
           ImgURL = vehicleSlot['ImgURL'] as String?;
-
-          print('Slot found: $slotId, $slotClass, $entryTime, $ImgURL');
-
           break;
         }
       }
@@ -187,7 +181,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Stack(
         children: [
-          // Foreground content
           Center(
             child: Padding(
               padding: EdgeInsets.all(16.0),

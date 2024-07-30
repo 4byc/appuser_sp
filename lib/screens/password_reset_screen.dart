@@ -20,7 +20,6 @@ class PasswordResetScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // Background Image using Container
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -29,7 +28,6 @@ class PasswordResetScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Foreground content
           SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
