@@ -1,4 +1,4 @@
-import 'package:appuser_sp/widgets/auth_wrapper.dart';
+import 'package:DeteClass/widgets/auth_wrapper.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {

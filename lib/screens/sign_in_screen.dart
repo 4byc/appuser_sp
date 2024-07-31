@@ -1,4 +1,4 @@
-import 'package:appuser_sp/screens/home_screen.dart';
+import 'package:DeteClass/screens/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
