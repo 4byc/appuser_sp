@@ -88,6 +88,27 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<bool> isParkingFull(String vehicleClass) async {
+    try {
+      final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+      final DocumentSnapshot snapshot =
+          await _firestore.collection('parkingSlots').doc(vehicleClass).get();
+
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>?;
+        final List<dynamic> slots = data?['slots'] ?? [];
+        final filledSlots =
+            slots.where((slot) => slot['isFilled'] == true).length;
+        final totalSlots = slots.length;
+
+        return filledSlots >= totalSlots;
+      }
+    } catch (e) {
+      print('Error checking parking status: $e');
+    }
+    return false;
+  }
+
   Future<void> findParking(BuildContext context) async {
     String? slotId;
     String? slotClass;
@@ -132,6 +153,50 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
+      // Check if the parking lot is full for the detected class
+      final bool isFull = await isParkingFull(slotClass);
+      if (isFull) {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text(
+                'Parking Full',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              content: Text(
+                  'The parking lot is full for your vehicle class. Please turn back.\nVehicle ID: $vehicleId'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    moveToExitedAndRecordPayment(vehicleId);
+                  },
+                  child: const Text('Exit'),
+                ),
+              ],
+            );
+          },
+        );
+
+        // Move the waiting vehicle to 'Hold' status
+        var detectionDoc = await _firestore
+            .collection('detections')
+            .where('VehicleID', isEqualTo: vehicleId)
+            .get();
+        if (detectionDoc.docs.isNotEmpty) {
+          await _firestore
+              .collection('detections')
+              .doc(detectionDoc.docs.first.id)
+              .update({'status': 'Hold'});
+        }
+        return;
+      }
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -149,6 +214,41 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
+    }
+  }
+
+  Future<void> moveToExitedAndRecordPayment(int vehicleId) async {
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+    // Find the detection document with status 'Hold'
+    final QuerySnapshot detectionSnapshot = await _firestore
+        .collection('detections')
+        .where('VehicleID', isEqualTo: vehicleId)
+        .where('status', isEqualTo: 'Hold')
+        .get();
+
+    if (detectionSnapshot.docs.isNotEmpty) {
+      final detectionDoc = detectionSnapshot.docs.first;
+      final detectionData = detectionDoc.data() as Map<String, dynamic>;
+
+      // Move to exited vehicles
+      await _firestore.collection('exitedVehicles').add(detectionData);
+
+      // Record a payment with cancellation info
+      await _firestore.collection('payment').add({
+        'vehicleId': vehicleId,
+        'slotClass': detectionData['class'],
+        'entryTime': detectionData['time'],
+        'exitTime': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'duration': 0, // No duration since it was canceled
+        'totalCost': 0,
+        'fine': 0,
+        'finalAmount': 0,
+        'status': 'Cancelled',
+      });
+
+      // Remove the detection document
+      await _firestore.collection('detections').doc(detectionDoc.id).delete();
     }
   }
 
