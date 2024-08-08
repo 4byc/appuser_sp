@@ -22,7 +22,8 @@ class VehicleDetailsScreen extends StatelessWidget {
   Future<Map<String, dynamic>> calculatePayment() async {
     final int currentTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final int durationInSeconds = currentTime - entryTime;
-    final int durationInHours = (durationInSeconds / 3600).floor();
+    final int durationInHours = (durationInSeconds / 3600).ceil();
+    final int durationInMinutes = ((durationInSeconds % 3600) / 60).round();
     int totalCost = 0;
 
     switch (slotClass) {
@@ -50,7 +51,8 @@ class VehicleDetailsScreen extends StatelessWidget {
 
     return {
       'totalCost': totalCost,
-      'durationInHours': durationInHours.toDouble(),
+      'durationInHours': durationInHours,
+      'durationInMinutes': durationInMinutes,
       'fine': fine,
       'finalAmount': totalCost + fine,
     };
@@ -58,7 +60,6 @@ class VehicleDetailsScreen extends StatelessWidget {
 
   int _calculateCost(int hours, int firstHourCost, int subsequentHourCost) {
     if (hours <= 0) return 0;
-    if (hours == 1) return firstHourCost;
     return firstHourCost + ((hours - 1) * subsequentHourCost);
   }
 
@@ -113,7 +114,8 @@ class VehicleDetailsScreen extends StatelessWidget {
         'slotClass': slotClass,
         'entryTime': entryTime,
         'exitTime': currentTime,
-        'duration': paymentDetails['durationInHours'],
+        'duration':
+            '${paymentDetails['durationInHours']} hours ${paymentDetails['durationInMinutes']} minutes',
         'totalCost': paymentDetails['totalCost'],
         'fine': paymentDetails['fine'],
         'finalAmount': paymentDetails['finalAmount'],
@@ -173,7 +175,7 @@ class VehicleDetailsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                  'Total Time: ${paymentDetails['durationInHours'].toStringAsFixed(2)} hours'),
+                  'Total Time: ${paymentDetails['durationInHours']} hours ${paymentDetails['durationInMinutes']} minutes'),
               SizedBox(height: 8),
               Text(
                 'Rp ${paymentDetails['totalCost']}',
